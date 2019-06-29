@@ -85,7 +85,6 @@ params={'text.latex.preamble':[r'\usepackage{amssymb}',r'\usepackage{amsmath}']}
 
 figures_path = '../figures/'
 
-
 n = 1000
 A = np.random.rand(n, n)
 A = A.dot(A.T)
