@@ -64,14 +64,19 @@ fig, ax = pl.subplots(1, 3, figsize=(11,3.4), sharey="row")
 ax[0].set_title("No reorthogonalization")
 for i in range(mj):
   ax[0].semilogy(approx_eigvals[i,:])
+ax[0].semilogy(eigvals.shape[0]*[mj+1], eigvals, "k_", lw=0)
 
 ax[1].set_title("Full reorthogonalization")
 for i in range(mj):
   ax[1].semilogy(approx_eigvals_full[i,:])
+ax[1].semilogy(eigvals.shape[0]*[mj+1], eigvals, "k_", lw=0)
 
 ax[2].set_title("Selective reorthogonalization")
 for i in range(mj):
   ax[2].semilogy(approx_eigvals_full[i,:], "w")
+ax[2].semilogy(eigvals.shape[0]*[mj+1], eigvals, "k_", lw=0)
+
+ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
 
 ax[0].set_ylabel("Approximate eigenvalues")
 ax[0].set_xlabel("m"); ax[1].set_xlabel("m"); ax[2].set_xlabel("m")
