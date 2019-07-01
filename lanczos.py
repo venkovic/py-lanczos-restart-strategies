@@ -15,12 +15,12 @@ def lanczos(A, m, v=None, reortho=None, eigvals=None):
   # (j+1)-th (j+1)-by-(j+1) tridiagonal, j \in [0, m):
   #   T(j+1) = Tridiag((alpha[:j+1], beta[1:j+1], alpha[:j+1]), (-1,0,1))
 
-  if (type(v) == type(None)):
+  if not isinstance(v, np.ndarray):
     v = np.random.rand(n)
   v /= np.linalg.norm(v)
   V[:,0] = v
   
-  if (type(eigvals) != type(None)):
+  if isinstance(eigvals, np.ndarray):
     data = {"approx_eigvecs":[], "approx_eigvals":[], "rel_iterated_error_bound":[], \
         "rel_error_bound":[], "global_error":[], "local_error":[]}
 
@@ -49,7 +49,7 @@ def lanczos(A, m, v=None, reortho=None, eigvals=None):
     T = get_T(alpha[:j+1], beta[1:j+1])
 
     if (j > 0): # For T(2), ..., T(m)
-      if (type(eigvals) == type(None)):
+      if not isinstance(eigvals, np.ndarray):
         approx_eigvecs, approx_eigvals, iterated_error_bound = \
           get_approx_eigvecs(V[:,:j+1], A, alpha[:j+1], beta[1:j+1], beta[j+1], j+1)
       else:
@@ -63,7 +63,7 @@ def lanczos(A, m, v=None, reortho=None, eigvals=None):
         data["global_error"] += [global_error]
         data["local_error"] += [local_error]
 
-  if (type(eigvals) == type(None)):
+  if not isinstance(eigvals, np.ndarray):
     return approx_eigvecs, approx_eigvals, iterated_error_bound
   else:
     return data
@@ -89,11 +89,11 @@ def get_approx_eigvecs(V, alpha, beta, beta_j, n_eigvecs, A=None, eigvals=None):
   # Iterated error bound:
   iterated_error_bound = [abs(beta_j)*abs(reduced_eigvecs[-1,i]) for i in range(n_eigvecs)]
   
-  if (type(eigvals) == type(None)):
+  if not isinstance(eigvals, np.ndarray):
     #return Y, reduced_eigvals, iterated_error_bound
     return Y, reduced_eigvals, iterated_error_bound
 
-  elif (type(eigvals) != type(None)):
+  else:
     rel_iterated_error_bound = np.array(iterated_error_bound)/np.abs(eigvals[:n_eigvecs])
 
     # Exact error bound:

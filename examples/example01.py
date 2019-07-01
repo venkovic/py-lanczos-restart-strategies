@@ -1,5 +1,5 @@
 import sys; sys.path += ["../"]
-from lanczos import lanczos_demmel, get_T, get_approx_eigvecs, get_eigvals
+from lanczos import lanczos, get_T, get_approx_eigvecs, get_eigvals
 import numpy as np 
 import scipy.sparse as sparse
 import scipy.sparse.linalg
