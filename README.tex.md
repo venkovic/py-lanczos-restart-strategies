@@ -95,32 +95,6 @@ v /= np.linalg.norm(v)
 
 m = 50
 
-"""
-V, alpha, beta = Lanczos(A, v, m)
-
-n_eigvecs = 7
-eigvals = get_eigvals(A, n_eigvecs)
-err_bnd, iterated_err_bnd, approx_eigvals, global_err, local_err = [], [], [], [], []
-for m_j in range(10, m+1):
-  T = get_T(alpha[:m_j], beta[:m_j-1])
-  Y, _approx_eigvals, _err_bnd, _iterated_err_bnd, _global_err, _local_err = get_approx_eigvecs(T, V[:,:m_j], A, beta[:m_j-1], n_eigvecs, eigvals=eigvals, output_format=1)
-  approx_eigvals += [_approx_eigvals]
-  err_bnd += [_err_bnd]
-  iterated_err_bnd += [_iterated_err_bnd]
-  global_err += [_global_err]
-  local_err += [_local_err]
-err_bnd, iterated_err_bnd = np.array(err_bnd), np.array(iterated_err_bnd)
-global_err, local_err = np.array(global_err), np.array(local_err)
-
-fig = pl.figure()
-for i in range(n_eigvecs):
-  pl.semilogy([_eigvals[i] for _eigvals in approx_eigvals])
-  pl.xlabel("m")
-  pl.ylabel(r"$\theta_k^{(m)}$")
-pl.show()
-"""
-
-#n_eigvecs = 7
 eigvals = np.linalg.eigvalsh(A)[-1::-1]
 data = lanczos(A, m, eigvals=eigvals)
 data_full = lanczos(A, m, reortho="full", eigvals=eigvals)
