@@ -5,46 +5,57 @@ import scipy.sparse.linalg
 # See https://people.eecs.berkeley.edu/~demmel/ma221_Fall09/Matlab/
 #     https://people.eecs.berkeley.edu/~demmel/ma221_Fall09/Matlab/LANCZOS_README.html
 
-def Lanczos(A, m, v=None, reortho="selective", eigvals=None):
+def lanczos(A, m, v=None, reortho=None, eigvals=None):
   n = A.shape[0]
-  n_eigvecs =7
+  n_eigvecs =20
+
+  alpha = np.zeros(m)
+  beta = np.zeros(m+1) # beta[0] := 0
+  V = np.zeros((n, m+1))
+  # (j+1)-th (j+1)-by-(j+1) tridiagonal, j \in [0, m):
+  #   T(j+1) = Tridiag((alpha[:j+1], beta[1:j+1], alpha[:j+1]), (-1,0,1))
 
   if (type(v) == type(None)):
     v = np.random.rand(n)
   v /= np.linalg.norm(v)
-  V = v.reshape((n, 1))
-  
-  alpha = []
-  beta = [0.]
+  V[:,0] = v
   
   if (type(eigvals) != type(None)):
     data = {"approx_eigvecs":[], "approx_eigvals":[], "rel_iterated_error_bound":[], \
         "rel_error_bound":[], "global_error":[], "local_error":[]}
 
   for j in range(m):
+    
     w = A.dot(V[:,j])
-    if (j > 0):
-      w -= beta[j]*V[:,j-1]
-    alpha += [w.dot(V[:,j])]
-    w -= alpha[j]*V[:,j]
-    beta += [np.linalg.norm(w)]
-    V = np.concatenate([V, (w/beta[j+1]).reshape((n,1))], axis=1)
-    T = get_T(alpha, beta[1:-1])
+    alpha[j] = w.dot(V[:,j])
+    
 
-    if (j > 2):
-      if (reortho == "full"):
-        pass
-      elif (reortho == "selective"):
-        pass
+    if (j == 0):
+      w -= alpha[j]*V[:,j]
+    else:
+      w -= alpha[j]*V[:,j]+beta[j]*V[:,j-1]
 
-    if (j > 1):
+    if (reortho == "full"):
+      for reortho_id in range(2):
+        for k in range(j):
+          w -= w.dot(V[:,k])*V[:,k]
+    elif (reortho == "selective"):
+      pass
+    
+    beta[j+1] = np.linalg.norm(w)
+    V[:,j+1] = w/beta[j+1]
+
+    # Assemble tridiagonal T(j+1)
+    T = get_T(alpha[:j+1], beta[1:j+1])
+
+    if (j > 0): # For T(2), ..., T(m)
       if (type(eigvals) == type(None)):
         approx_eigvecs, approx_eigvals, iterated_error_bound = \
-          get_approx_eigvecs(T, V[:,:-1], A, beta[1:j], j, eigvals=None)
+          get_approx_eigvecs(V[:,:j+1], A, alpha[:j+1], beta[1:j+1], beta[j+1], j+1)
       else:
         approx_eigvecs, approx_eigvals, rel_iterated_error_bound, \
         rel_error_bound, global_error, local_error = \
-          get_approx_eigvecs(T, V[:,:-1], A, beta[1:j], j, eigvals=eigvals)
+          get_approx_eigvecs(V[:,:j+1], alpha[:j+1], beta[1:j+1], beta[j+1], j+1, A=A, eigvals=eigvals)
         data["approx_eigvecs"] += [approx_eigvecs]
         data["approx_eigvals"] += [approx_eigvals]
         data["rel_iterated_error_bound"] += [rel_iterated_error_bound]
@@ -52,9 +63,6 @@ def Lanczos(A, m, v=None, reortho="selective", eigvals=None):
         data["global_error"] += [global_error]
         data["local_error"] += [local_error]
 
-      T2 = np.max(np.abs(approx_eigvals))
-    #print("j = %d" %(m)) 
-  #return V[:,:-1], np.array(alpha), np.array(beta[1:-1])
   if (type(eigvals) == type(None)):
     return approx_eigvecs, approx_eigvals, iterated_error_bound
   else:
@@ -69,19 +77,17 @@ def get_eigvals(A, n_eigvecs):
   # eigvals are here sorted from most to less dominant
   return eigvals
 
-
-def get_approx_eigvecs(T, V, A, beta, n_eigvecs, eigvals=None):
-  # Compute eigpairs of the tridiagonal
-  reduced_eigvals, reduced_eigvecs = sparse.linalg.eigsh(T, k=n_eigvecs)
+def get_approx_eigvecs(V, alpha, beta, beta_j, n_eigvecs, A=None, eigvals=None):
+  reduced_eigvals, reduced_eigvecs = scipy.linalg.eigh_tridiagonal(alpha, beta, select="a")
   reduced_eigvals = reduced_eigvals[-1::-1]
   reduced_eigvecs = reduced_eigvecs[:,-1::-1]
-  # reduced eigpairs are now sorted from most to less dominant
+  # reduced eigpairs are sorted from most to less dominant
 
   # Form Ritz approximate eigenvectors of A
   Y = V.dot(reduced_eigvecs)
 
   # Iterated error bound:
-  iterated_error_bound = [abs(beta[-1])*abs(reduced_eigvecs[-1,i]) for i in range(n_eigvecs)]
+  iterated_error_bound = [abs(beta_j)*abs(reduced_eigvecs[-1,i]) for i in range(n_eigvecs)]
   
   if (type(eigvals) == type(None)):
     #return Y, reduced_eigvals, iterated_error_bound

@@ -1,5 +1,5 @@
 import sys; sys.path += ["../"]
-from lanczos import Lanczos, get_T, get_approx_eigvecs, get_eigvals
+from lanczos import lanczos_demmel, get_T, get_approx_eigvecs, get_eigvals
 import numpy as np 
 import scipy.sparse as sparse
 import scipy.sparse.linalg
@@ -18,7 +18,7 @@ A = A.dot(A.T)
 v = np.random.rand(n)
 v /= np.linalg.norm(v)
 
-m = 20
+m = 50
 
 """
 V, alpha, beta = Lanczos(A, v, m)
@@ -47,14 +47,17 @@ pl.show()
 
 #n_eigvecs = 7
 eigvals = np.linalg.eigvalsh(A)[-1::-1]
-data = Lanczos(A, m, reortho="none", eigvals=eigvals)
+data = lanczos(A, m, eigvals=eigvals)
+data_full = lanczos(A, m, reortho="full", eigvals=eigvals)
 
-approx_eigvals = []
+approx_eigvals, approx_eigvals_full = [], []
 mm = len(data["approx_eigvals"])
 mj = len(data["approx_eigvals"][-1])
 for i in range(mj):
   approx_eigvals += [i*[None]+[d[i] for d in data["approx_eigvals"][i:]]]
+  approx_eigvals_full += [i*[None]+[d[i] for d in data_full["approx_eigvals"][i:]]]
 approx_eigvals = np.array(approx_eigvals)
+approx_eigvals_full = np.array(approx_eigvals_full)
 
 fig, ax = pl.subplots(1, 3, figsize=(11,3.4), sharey="row")
 
@@ -64,11 +67,11 @@ for i in range(mj):
 
 ax[1].set_title("Full reorthogonalization")
 for i in range(mj):
-  ax[1].semilogy(approx_eigvals[i,:])
+  ax[1].semilogy(approx_eigvals_full[i,:])
 
 ax[2].set_title("Selective reorthogonalization")
 for i in range(mj):
-  ax[2].semilogy(approx_eigvals[i,:])
+  ax[2].semilogy(approx_eigvals_full[i,:], "w")
 
 ax[0].set_ylabel("Approximate eigenvalues")
 ax[0].set_xlabel("m"); ax[1].set_xlabel("m"); ax[2].set_xlabel("m")

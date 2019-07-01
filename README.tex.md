@@ -189,9 +189,10 @@ for i in range(n_eigvecs):
 #        Plot local/global errors as in p. 370-371 of Demmel's book.
 #        Try
 # T2:    Implement restart strategies.
+
 #        Explicit vs implicit, see p. 239-240 of Dongara et al.'s book
 # R3/T3: Okay, now it seems that only the MD eigpair is being approximated ?!
-#        This is not the case for m < 5, see first plot.
+#        This is not the case for m < 5, see first plot.	
 # T4:    Measure and plot LOO?
 
 ```
