@@ -5,50 +5,86 @@ import scipy.sparse.linalg
 # See https://people.eecs.berkeley.edu/~demmel/ma221_Fall09/Matlab/
 #     https://people.eecs.berkeley.edu/~demmel/ma221_Fall09/Matlab/LANCZOS_README.html
 
-def lanczos(A, m, v=None, reortho=None, eigvals=None):
+
+
+def lanczos(A, npairs, m=50, q1=None, reortho=None, eigvals=None):
+  # Implementation #1 : Algo. 7.1 (Demmel, 1997);
+  # (  we use this )    Algo. 10.1.1 (Golub, 2012)
+  # (implementation)    Sec. 10.3.1 (Golub, 2012)---verison w. lighter storage
+  #
+  # Implementation #2 : Sec. 13.1 (Parlett, 1980); 
+  # (greater stability) Algo. 6.5 (Saad, 2011);
+  # 
+  # Links between variants  : A({1,2},{6,7}) (Paige, 1972)
+  #                           Algo. 36.1 (Trefethen and Bau, 1997)
+  #
+  # Preferred references : Chap. 13.{1,2,7} (Parlett, 1980)
+  #                        10.3.1 (Golub, 2012)
+  #
+  alpha = np.zeros(m)  # (al_1, ..., al_m)
+  beta = np.zeros(m+1) # (be_0, ..., be_m), be_0 := 0
+  
+  #   T_j    = sparse.diags(([be_1, ..., be_{j-1}],
+  # (j-by-j)                 [al_1, ..., al_{j}]
+  #                          [be_1, ..., be_{j-1}]), (-1,0,1))
+  
   n = A.shape[0]
-  n_eigvecs =20
-
-  alpha = np.zeros(m)
-  beta = np.zeros(m+1) # beta[0] := 0
-  V = np.zeros((n, m+1))
-  # (j+1)-th (j+1)-by-(j+1) tridiagonal, j \in [0, m):
-  #   T(j+1) = Tridiag((alpha[:j+1], beta[1:j+1], alpha[:j+1]), (-1,0,1))
-
-  if not isinstance(v, np.ndarray):
-    v = np.random.rand(n)
-  v /= np.linalg.norm(v)
-  V[:,0] = v
+  Q = np.zeros((n, m+1))
+  
+  # Initialize first Lanczos vector
+  if not isinstance(q1, np.ndarray):
+    q1 = np.random.rand(n)
+  q1 /= np.linalg.norm(q1)
+  Q[:,0] = q1
   
   if isinstance(eigvals, np.ndarray):
-    data = {"approx_eigvecs":[], "approx_eigvals":[], "rel_iterated_error_bound":[], \
-        "rel_error_bound":[], "global_error":[], "local_error":[]}
+    #data = {"approx_eigvecs":[], "approx_eigvals":[], "rel_iterated_error_bound":[], \
+    #    "rel_error_bound":[], "global_error":[], "local_error":[]}
+    data = {"approx_eigvecs":[], "approx_eigvals":[], "iterated_error_bound":[]}
 
   for j in range(m):
-    
-    w = A.dot(V[:,j])
-    alpha[j] = w.dot(V[:,j])
-    
+    u = A.dot(Q[:,j])
+    alpha[j] = Q[:,j].dot(u)
 
-    if (j == 0):
-      w -= alpha[j]*V[:,j]
-    else:
-      w -= alpha[j]*V[:,j]+beta[j]*V[:,j-1]
+    u -= alpha[j]*Q[:,j]
+    if (j > 0):
+      u -= beta[j]*Q[:,j-1]
 
-    if (reortho == "full"):
-      for reortho_id in range(2):
+    if (reortho != None) & (j > 1):
+      if (reortho == "full"):
+        for _ in range(2):
+          for k in range(j):
+            u -= u.dot(Q[:,k])*Q[:,k]
+
+      elif (reortho == "selective"):
         for k in range(j):
-          w -= w.dot(V[:,k])*V[:,k]
-    elif (reortho == "selective"):
-      pass
-    
-    beta[j+1] = np.linalg.norm(w)
-    V[:,j+1] = w/beta[j+1]
+          if (beta[j]*abs(S[j-1,k]) < tol):
+            u -= u.dot(Y[:,k])*Y[:,k]
 
-    # Assemble tridiagonal T(j+1)
-    T = get_T(alpha[:j+1], beta[1:j+1])
+    beta[j+1] = np.linalg.norm(u)
+    Q[:,j+1] = u/beta[j+1]
 
-    if (j > 0): # For T(2), ..., T(m)
+    # Get eigenpairs from tridiagonal
+    if (j > 0): # For T_2, ..., T_m
+      theta, S = scipy.linalg.eigh_tridiagonal(alpha[:j+1], beta[1:j+1], select="a")
+      # theta[0] <= ... <= theta[j]
+   
+      if (reortho == "selective"):
+        Tnorm = theta[j]/theta[0]
+        tol = np.finfo(float).eps**.5*Tnorm
+
+      Y = Q[:,:j+1].dot(S)
+      data["approx_eigvecs"] += [Y[:,-1::-1]]
+      data["approx_eigvals"] += [theta[-1::-1]]
+      data["iterated_error_bound"] += [np.abs(beta[j+1]*S[j,-1::-1])]
+
+      # data["rel_error_bound"], data["global_error"] and data["local_error"]
+      # can be computed after
+
+
+      # Get iterated error bounds, ...
+
+      """
       if not isinstance(eigvals, np.ndarray):
         approx_eigvecs, approx_eigvals, iterated_error_bound = \
           get_approx_eigvecs(V[:,:j+1], A, alpha[:j+1], beta[1:j+1], beta[j+1], j+1)
@@ -62,20 +98,12 @@ def lanczos(A, m, v=None, reortho=None, eigvals=None):
         data["rel_error_bound"] += [rel_error_bound]
         data["global_error"] += [global_error]
         data["local_error"] += [local_error]
+      """
 
   if not isinstance(eigvals, np.ndarray):
     return approx_eigvecs, approx_eigvals, iterated_error_bound
   else:
     return data
-
-def get_T(alpha, beta):
-# Assemble tridiagonalization of A
-  return sparse.diags([beta, alpha, beta], [-1, 0, 1])
-
-def get_eigvals(A, n_eigvecs):
-  eigvals = sparse.linalg.eigsh(A, k=n_eigvecs, return_eigenvectors=False)[-1::-1]
-  # eigvals are here sorted from most to less dominant
-  return eigvals
 
 def get_approx_eigvecs(V, alpha, beta, beta_j, n_eigvecs, A=None, eigvals=None):
   reduced_eigvals, reduced_eigvecs = scipy.linalg.eigh_tridiagonal(alpha, beta, select="a")
@@ -103,4 +131,4 @@ def get_approx_eigvecs(V, alpha, beta, beta_j, n_eigvecs, A=None, eigvals=None):
     # GLobal and local errors, see p. 370 in Demmel's textbook:
     global_error = np.abs(reduced_eigvals-eigvals[:n_eigvecs])/np.abs(eigvals[:n_eigvecs])
     local_error = np.array([np.min(reduced_eigvals-eigvals[i]) for i in range(n_eigvecs)])/np.abs(eigvals[:n_eigvecs])
-    return Y, reduced_eigvals, rel_iterated_error_bound, rel_error_bound, global_error, local_error 
+    return Y, reduced_eigvals, rel_iterated_error_bound, rel_error_bound, global_error, local_error

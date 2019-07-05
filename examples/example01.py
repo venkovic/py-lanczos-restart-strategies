@@ -1,15 +1,15 @@
 import sys; sys.path += ["../"]
-from lanczos import lanczos, get_T, get_approx_eigvecs, get_eigvals
+from lanczos import lanczos
 import numpy as np 
 import scipy.sparse as sparse
 import scipy.sparse.linalg
+import time
 
 import pylab as pl 
 pl.rcParams['text.usetex'] = True
 params={'text.latex.preamble':[r'\usepackage{amssymb}',r'\usepackage{amsmath}']}
 
 figures_path = '../figures/'
-
 
 n = 1000
 A = np.random.rand(n, n)
@@ -18,7 +18,90 @@ A = A.dot(A.T)
 v = np.random.rand(n)
 v /= np.linalg.norm(v)
 
-m = 50
+m = 100
+npairs = 10
+
+eigvals = np.linalg.eigvalsh(A)[-1::-1]
+t0 = time.time()
+data = lanczos(A, npairs, m=m, eigvals=eigvals)
+print("No reorthogonalization : %g" %(time.time()-t0)); t0 = time.time()
+data_full = lanczos(A, npairs, m=m, reortho="full", eigvals=eigvals)
+print("Full reorthogonalization : %g" %(time.time()-t0)); t0 = time.time()
+data_selective = lanczos(A, npairs, m=m, reortho="selective", eigvals=eigvals)
+print("Selective reorthogonalization : %g" %(time.time()-t0)); t0 = time.time()
+
+approx_eigvals, approx_eigvals_full, approx_eigvals_selective = [], [], []
+iterated_error_bound, iterated_error_bound_full, iterated_error_bound_selective = [], [], []
+mm = len(data["approx_eigvals"])
+mj = len(data["approx_eigvals"][-1])
+for i in range(mj):
+  approx_eigvals += [i*[None]+[d[i] for d in data["approx_eigvals"][i:]]]
+  approx_eigvals_full += [i*[None]+[d[i] for d in data_full["approx_eigvals"][i:]]]
+  approx_eigvals_selective += [i*[None]+[d[i] for d in data_selective["approx_eigvals"][i:]]]
+
+  iterated_error_bound += [i*[None]+[d[i] for d in data["iterated_error_bound"][i:]]]
+  iterated_error_bound_full += [i*[None]+[d[i] for d in data_full["iterated_error_bound"][i:]]]
+  iterated_error_bound_selective += [i*[None]+[d[i] for d in data_selective["iterated_error_bound"][i:]]]
+
+approx_eigvals = np.array(approx_eigvals)
+approx_eigvals_full = np.array(approx_eigvals_full)
+approx_eigvals_selective = np.array(approx_eigvals_selective)
+
+iterated_error_bound = np.array(iterated_error_bound)
+iterated_error_bound_full = np.array(iterated_error_bound_full)
+iterated_error_bound_selective = np.array(iterated_error_bound_selective)
+
+fig, ax = pl.subplots(1, 3, figsize=(11,3.4), sharey="row")
+lw = .5
+ax[0].set_title("No reorthogonalization")
+for i in range(mj):
+  ax[0].semilogy(approx_eigvals[i,:], "+")
+for i in range(mj):
+  ax[0].semilogy(approx_eigvals[i,:], "-", lw=lw)
+ax[0].semilogy(eigvals.shape[0]*[mj+3], eigvals, "k_", lw=0)
+
+ax[1].set_title("Full reorthogonalization")
+for i in range(mj):
+  ax[1].semilogy(approx_eigvals_full[i,:], "+")
+for i in range(mj):
+  ax[1].semilogy(approx_eigvals_full[i,:], "-", lw=lw)
+ax[1].semilogy(eigvals.shape[0]*[mj+3], eigvals, "k_", lw=0)
+
+ax[2].set_title("Selective reorthogonalization")
+for i in range(mj):
+  ax[2].semilogy(approx_eigvals_selective[i,:], "+")
+for i in range(mj):
+  ax[2].semilogy(approx_eigvals_selective[i,:], "-",  lw=lw)
+ax[2].semilogy(eigvals.shape[0]*[mj+3], eigvals, "k_", lw=0)
+ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
+ax[0].set_ylabel("Approximate eigenvalues")
+ax[0].set_xlabel("m"); ax[1].set_xlabel("m"); ax[2].set_xlabel("m")
+pl.savefig(figures_path+"example01_lanczos_a.png", bbox_inches='tight')
+#pl.show()
+
+fig, ax = pl.subplots(1, 3, figsize=(11,3.4), sharey="row")
+lw = .8
+ax[0].set_title("No reorthogonalization")
+for i in range(mj):
+  ind = (iterated_error_bound[i,:]==None).sum()
+  ax[0].semilogy(np.concatenate((iterated_error_bound[i,:ind],iterated_error_bound[i,ind:]/approx_eigvals[i,ind:])), "-", lw=lw)
+ax[1].set_title("Full reorthogonalization")
+for i in range(mj):
+  ind = (iterated_error_bound_full[i,:]==None).sum()
+  ax[1].semilogy(np.concatenate((iterated_error_bound_full[i,:ind],iterated_error_bound_full[i,ind:]/approx_eigvals_full[i,ind:])), "-", lw=lw)
+ax[2].set_title("Selective reorthogonalization")
+for i in range(mj):
+  ind = (iterated_error_bound_selective[i,:]==None).sum()
+  ax[2].semilogy(np.concatenate((iterated_error_bound_selective[i,:ind],iterated_error_bound_selective[i,ind:]/approx_eigvals_selective[i,ind:])), "-", lw=lw)
+ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
+ax[0].set_ylim(1e-16,1e2)
+ax[0].set_ylabel("Iterated relative error bound")
+for j in range(3):
+  ax[j].set_xlabel("m")
+  ax[j].grid()
+pl.savefig(figures_path+"example01_lanczos_b.png", bbox_inches='tight')
+#pl.show()
+
 
 """
 V, alpha, beta = Lanczos(A, v, m)
@@ -45,43 +128,6 @@ for i in range(n_eigvecs):
 pl.show()
 """
 
-#n_eigvecs = 7
-eigvals = np.linalg.eigvalsh(A)[-1::-1]
-data = lanczos(A, m, eigvals=eigvals)
-data_full = lanczos(A, m, reortho="full", eigvals=eigvals)
-
-approx_eigvals, approx_eigvals_full = [], []
-mm = len(data["approx_eigvals"])
-mj = len(data["approx_eigvals"][-1])
-for i in range(mj):
-  approx_eigvals += [i*[None]+[d[i] for d in data["approx_eigvals"][i:]]]
-  approx_eigvals_full += [i*[None]+[d[i] for d in data_full["approx_eigvals"][i:]]]
-approx_eigvals = np.array(approx_eigvals)
-approx_eigvals_full = np.array(approx_eigvals_full)
-
-fig, ax = pl.subplots(1, 3, figsize=(11,3.4), sharey="row")
-
-ax[0].set_title("No reorthogonalization")
-for i in range(mj):
-  ax[0].semilogy(approx_eigvals[i,:])
-ax[0].semilogy(eigvals.shape[0]*[mj+1], eigvals, "k_", lw=0)
-
-ax[1].set_title("Full reorthogonalization")
-for i in range(mj):
-  ax[1].semilogy(approx_eigvals_full[i,:])
-ax[1].semilogy(eigvals.shape[0]*[mj+1], eigvals, "k_", lw=0)
-
-ax[2].set_title("Selective reorthogonalization")
-for i in range(mj):
-  ax[2].semilogy(approx_eigvals_full[i,:], "w")
-ax[2].semilogy(eigvals.shape[0]*[mj+1], eigvals, "k_", lw=0)
-
-ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
-
-ax[0].set_ylabel("Approximate eigenvalues")
-ax[0].set_xlabel("m"); ax[1].set_xlabel("m"); ax[2].set_xlabel("m")
-pl.savefig(figures_path+"example01.png", bbox_inches='tight')
-#pl.show()
 
 """
 err_, iterated_err_bnd, approx_eigvals, global_err, local_err = [], [], [], [], []
@@ -115,7 +161,6 @@ for i in range(n_eigvecs):
   pl.show()
 """
 
-
 # Q1:    HOW DO YOU ASSESS THE ACCURACY OF THOSE APPROXIMATION.
 #        i.e. HOW DO YOU PICK m for a given n_eigvecs
 #        You can not know this, see p. 239-240 of Dongara et al.'s book.
@@ -124,6 +169,4 @@ for i in range(n_eigvecs):
 #        Try
 # T2:    Implement restart strategies.
 #        Explicit vs implicit, see p. 239-240 of Dongara et al.'s book
-# R3/T3: Okay, now it seems that only the MD eigpair is being approximated ?!
-#        This is not the case for m < 5, see first plot.
-# T4:    Measure and plot LOO?
+# T3:    Measure and plot LOO?
