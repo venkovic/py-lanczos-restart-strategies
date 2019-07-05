@@ -16,11 +16,11 @@ _TeX expressions rendered by [TeXify](https://github.com/apps/texify)._
 
 ### Files' content:
 
-Files: _Lanczos_Ritz.py_.
+Files: _lanczos.py_.
 
-Classes: `None`.
+Classes: `lanczos`.
 
-- _Lanczos_Ritz.py_ : 
+- _lanczos.py_ : 
 
   Signature : `sampler`(`nEL`=`500`,`smp_type`=`"mc"`, `model`=`"SExp"`, `sig2`=`1`, `mu`=`0`, `L`=`0.1`, `vsig2`=`None`,`delta2`=`1e-3`, `seed`=`123456789`, `verb`=`1`, `xa`=`0`, `xb`=`1`, `u_xb`=`None`, `du_xb`=`0`)
 
@@ -38,14 +38,6 @@ Classes: `None`.
 
   - `sig2` (`float`, `sig2`>`0`) : Variance.
 
-  - `mu` (`float`) : Mean.
-
-  - `L` (`float`, `L`>`0`) : Correlation length.
-
-  - `delta2` (`float`, `0`<`delta2`<`1`) : Tolerance for the relative error in variance of the truncated KL representation. Used to evaluate the number `nKL`<`nEL` of terms kept in the expansion.
-
-  - `seed` (`int`, `seed`>=`0`) : RNG seed.
-
   - `verb` (`int`, {`0`,`1`, `2`}) : Verbose parameter.
 
     - `0` : No standard output, new KL expansion not saved.
@@ -54,23 +46,20 @@ Classes: `None`.
 
   - `vsig2` (`float`, `vsig2`>`0`) : Variance of the random walk for the proposal of the MCMC sampler. If `None`, eventually set to `2.38**2/nKL`.
 
-  - `xa`, `xb` (`float`, `xa`<`xb`) : Domain extent.
-
-  - `u_xb`, `du_xb` (`float`) : $u(x_b)$ and $\partial_xu(x_b)$. `u_xb` must be `None` if `du_xb`!=`None`. `du_xb` must be `None` if `u_xb`!=`None`.
 
 
-  Public methods : `compute_KL`(`self`), `draw_realization`(`self`), `do_assembly`(`self`), `get_kappa`(`self`), `get_median_A`(`self`).
+  Public methods : `compute_KL`(`self`), `draw_realization`(`self`).
 
 
 ### Usage:
 
 Examples:
 
-- _example01.py_ : Use of the `lanczos` class to investigate the effect of `reortho` on the evolution of approximate eigenvalues.
+- _example01_lanczos.py_ : Use of the `lanczos` class to investigate the effect of full and selective reorthogonalization on the evolution of approximate eigenvalues.
 
-#### Example #1: example01_sampler.py
+#### Example #1: example01_lanczos.py
 
-Draws and plots realizations of the lognormal coefficient field $\kappa(x;\theta)$ with an exponential covariance sampled by Monte Carlo, and by Markov chain Monte Carlo.  
+Investigates the effect of full and selective reorthogonalization on the evolution of approximate eigenvalues.
 
 ```python
 import sys; sys.path += ["../"]
@@ -90,10 +79,7 @@ n = 1000
 A = np.random.rand(n, n)
 A = A.dot(A.T)
 
-v = np.random.rand(n)
-v /= np.linalg.norm(v)
-
-m = 100
+m = 50
 npairs = 10
 
 eigvals = np.linalg.eigvalsh(A)[-1::-1]
@@ -130,26 +116,29 @@ fig, ax = pl.subplots(1, 3, figsize=(11,3.4), sharey="row")
 lw = .5
 ax[0].set_title("No reorthogonalization")
 for i in range(mj):
-  ax[0].semilogy(approx_eigvals[i,:], "+")
+  ax[0].semilogy(range(1,m), approx_eigvals[i,:], "+")
 for i in range(mj):
-  ax[0].semilogy(approx_eigvals[i,:], "-", lw=lw)
+  ax[0].semilogy(range(1,m), approx_eigvals[i,:], "-", lw=lw)
 ax[0].semilogy(eigvals.shape[0]*[mj+3], eigvals, "k_", lw=0)
 
 ax[1].set_title("Full reorthogonalization")
 for i in range(mj):
-  ax[1].semilogy(approx_eigvals_full[i,:], "+")
+  ax[1].semilogy(range(1,m), approx_eigvals_full[i,:], "+")
 for i in range(mj):
-  ax[1].semilogy(approx_eigvals_full[i,:], "-", lw=lw)
+  ax[1].semilogy(range(1,m), approx_eigvals_full[i,:], "-", lw=lw)
 ax[1].semilogy(eigvals.shape[0]*[mj+3], eigvals, "k_", lw=0)
 
 ax[2].set_title("Selective reorthogonalization")
 for i in range(mj):
-  ax[2].semilogy(approx_eigvals_selective[i,:], "+")
+  ax[2].semilogy(range(1,m), approx_eigvals_selective[i,:], "+")
 for i in range(mj):
-  ax[2].semilogy(approx_eigvals_selective[i,:], "-",  lw=lw)
+  ax[2].semilogy(range(1,m), approx_eigvals_selective[i,:], "-",  lw=lw)
+for j in range(3):
+  ax[j].grid()
 ax[2].semilogy(eigvals.shape[0]*[mj+3], eigvals, "k_", lw=0)
 ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
 ax[0].set_ylabel("Approximate eigenvalues")
+fig.suptitle(r"$\{\lambda_i(T_m)\}_{i=1}^m$")
 ax[0].set_xlabel("m"); ax[1].set_xlabel("m"); ax[2].set_xlabel("m")
 pl.savefig(figures_path+"example01_lanczos_a.png", bbox_inches='tight')
 #pl.show()
@@ -159,23 +148,52 @@ lw = .8
 ax[0].set_title("No reorthogonalization")
 for i in range(mj):
   ind = (iterated_error_bound[i,:]==None).sum()
-  ax[0].semilogy(np.concatenate((iterated_error_bound[i,:ind],iterated_error_bound[i,ind:]/approx_eigvals[i,ind:])), "-", lw=lw)
+  ax[0].semilogy(range(1,m), np.concatenate((iterated_error_bound[i,:ind],iterated_error_bound[i,ind:]/approx_eigvals[i,ind:])), "-", lw=lw)
 ax[1].set_title("Full reorthogonalization")
 for i in range(mj):
   ind = (iterated_error_bound_full[i,:]==None).sum()
-  ax[1].semilogy(np.concatenate((iterated_error_bound_full[i,:ind],iterated_error_bound_full[i,ind:]/approx_eigvals_full[i,ind:])), "-", lw=lw)
+  ax[1].semilogy(range(1,m), np.concatenate((iterated_error_bound_full[i,:ind],iterated_error_bound_full[i,ind:]/approx_eigvals_full[i,ind:])), "-", lw=lw)
 ax[2].set_title("Selective reorthogonalization")
 for i in range(mj):
   ind = (iterated_error_bound_selective[i,:]==None).sum()
-  ax[2].semilogy(np.concatenate((iterated_error_bound_selective[i,:ind],iterated_error_bound_selective[i,ind:]/approx_eigvals_selective[i,ind:])), "-", lw=lw)
+  ax[2].semilogy(range(1,m), np.concatenate((iterated_error_bound_selective[i,:ind],iterated_error_bound_selective[i,ind:]/approx_eigvals_selective[i,ind:])), "-", lw=lw)
 ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
 ax[0].set_ylim(1e-16,1e2)
 ax[0].set_ylabel("Iterated relative error bound")
+fig.suptitle(r"$\{|\beta_mS_{mi}/\lambda_i(T_m)|\}_{i=1}^m$")
 for j in range(3):
   ax[j].set_xlabel("m")
   ax[j].grid()
 pl.savefig(figures_path+"example01_lanczos_b.png", bbox_inches='tight')
 #pl.show()
+
+fig, ax = pl.subplots(1, 3, figsize=(11,3.4), sharey="row")
+lw = .8
+ax[0].set_title("No reorthogonalization")
+for i in range(mj):
+  ind = (approx_eigvals[i,:]==None).sum()
+  ax[0].semilogy(range(1,m), np.concatenate((approx_eigvals[i,:ind],np.abs((approx_eigvals[i,ind:]-eigvals[i])/eigvals[i]))), "-", lw=lw)
+ax[1].set_title("Full reorthogonalization")
+for i in range(mj):
+  ind = (approx_eigvals_full[i,:]==None).sum()
+  ax[1].semilogy(range(1,m), np.concatenate((approx_eigvals_full[i,:ind],np.abs((approx_eigvals_full[i,ind:]-eigvals[i])/eigvals[i]))), "-", lw=lw)
+ax[2].set_title("Selective reorthogonalization")
+for i in range(mj):
+  ind = (approx_eigvals_selective[i,:]==None).sum()
+  ax[2].semilogy(range(1,m), np.concatenate((approx_eigvals_selective[i,:ind],np.abs((approx_eigvals_selective[i,ind:]-eigvals[i])/eigvals[i]))), "-", lw=lw)
+ax[0].set_ylabel("Global error")
+fig.suptitle("Global error, "+r"$\{|\lambda_i(T_m)-\lambda_i(A)|/|\lambda_i(A)|\}_{i=1}^m$")
+for j in range(3):
+  ax[j].set_xlabel("m")
+  ax[j].grid()
+pl.savefig(figures_path+"example01_lanczos_c.png", bbox_inches='tight')
+#pl.show()
+
+# TO DO:
+# Q1:    HOW DO YOU PICK m for a given n_eigvecs?
+#        You can not know this, see p. 239-240 of Dongara et al.'s book.
+# T2:    Implement restart strategies.
+#        Explicit vs implicit, see p. 239-240 of Dongara et al.'s book
 ```
 
 Output :
@@ -183,3 +201,5 @@ Output :
 ![example01_lanczos_a](./figures/example01_lanczos_a.png)
 
 ![example01_lanczos_b](./figures/example01_lanczos_b.png)
+
+![example01_lanczos_c](./figures/example01_lanczos_c.png)
