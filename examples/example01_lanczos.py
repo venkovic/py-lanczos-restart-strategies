@@ -1,45 +1,3 @@
-# lanczos-restart-strategies
-
-#### Enables testing and applications of restarting strategies for Lanczos tridiagonalizations used in solving sequences of eigenvalue problems.
-
-Author: Nicolas Venkovic
-
-email: [venkovic@cerfacs.fr](mailto:venkovic@cerfacs.fr)
-
-_TeX expressions rendered by [TeXify](https://github.com/apps/texify)._
-
-### Dependencies:
-
- - *Python* (2.x >= 2.6)
- - *SciPy* (>= 0.11)
- - *NumPy* (>= 1.6)
-
-### Files' content:
-
-Files: _lanczos.py_.
-
-Classes: `lanczos`.
-
-- _lanczos.py_ : 
-
-  Signature : `lanczos`(`m`)
-
-
-
-  Public methods : `method`(`self`).
-
-
-### Usage:
-
-Examples:
-
-- _example01_lanczos.py_ : Use of the `lanczos` class to investigate the effect of full and selective reorthogonalization on the evolution of approximate eigenvalues.
-
-#### Example #1: example01_lanczos.py
-
-Investigates the effect of full and selective reorthogonalization on the evolution of approximate eigenvalues.
-
-```python
 import sys; sys.path += ["../"]
 from lanczos import lanczos
 import numpy as np 
@@ -83,16 +41,9 @@ iterated_error_bound_selective = np.array(iterated_error_bound_selective)
 
 plot(m, eigvals, approx_eigvals, approx_eigvals_full, approx_eigvals_selective, 
      iterated_error_bound, iterated_error_bound_full, iterated_error_bound_selective)
-```
 
-Output :
-
-![example01_lanczos_a](./figures/example01_lanczos_a.png)
-
-![example01_lanczos_b](./figures/example01_lanczos_b.png)
-
-![example01_lanczos_c](./figures/example01_lanczos_c.png)
-
-Observations :
-
-Ghost (repeating) eigenvalues appear when no reorthogonalization is applied. 
+# TO DO:
+# Q1:    HOW DO YOU PICK m for a given n_eigvecs?
+#        You can not know this, see p. 239-240 of Dongara et al.'s book.
+# T2:    Implement restart strategies.
+#        Explicit vs implicit, see p. 239-240 of Dongara et al.'s book
