@@ -1,9 +1,6 @@
 import sys; sys.path += ["../"]
 from lanczos import lanczos
 import numpy as np 
-import scipy.sparse as sparse
-import scipy.sparse.linalg
-import time
 
 import pylab as pl 
 pl.rcParams['text.usetex'] = True
@@ -40,7 +37,7 @@ def plot(m, eigvals, approx_eigvals, approx_eigvals_full, approx_eigvals_selecti
   ax[2].semilogy(eigvals.shape[0]*[m+3], eigvals, "k_", lw=0)
   ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
   ax[0].set_ylabel("Approximate eigenvalues")
-  fig.suptitle(r"$\{\lambda_i(T_m)\}_{i=1}^m$")
+  fig.suptitle("Approximate eigenvalues, "+r"$\{\lambda_i(T_m)\}_{i=1}^m$")
   ax[0].set_xlabel("m"); ax[1].set_xlabel("m"); ax[2].set_xlabel("m")
   pl.savefig(figures_path+"example01_lanczos_a.png", bbox_inches='tight')
   #pl.show()  
@@ -62,7 +59,7 @@ def plot(m, eigvals, approx_eigvals, approx_eigvals_full, approx_eigvals_selecti
   ax[1].set_ylim(ax[0].get_ylim()); ax[2].set_ylim(ax[0].get_ylim())
   ax[0].set_ylim(1e-16,1e2)
   ax[0].set_ylabel("Iterated relative error bound")
-  fig.suptitle(r"$\{|\beta_mS_{mi}/\lambda_i(T_m)|\}_{i=1}^m$")
+  fig.suptitle("Iterated relative error bound, "+r"$\{|\beta_mS_{mi}/\lambda_i(T_m)|\}_{i=1}^m$")
   for j in range(3):
     ax[j].set_xlabel("m")
     ax[j].grid()
@@ -90,9 +87,3 @@ def plot(m, eigvals, approx_eigvals, approx_eigvals_full, approx_eigvals_selecti
     ax[j].grid()
   pl.savefig(figures_path+"example01_lanczos_c.png", bbox_inches='tight')
   #pl.show()
-
-# TO DO:
-# Q1:    HOW DO YOU PICK m for a given n_eigvecs?
-#        You can not know this, see p. 239-240 of Dongara et al.'s book.
-# T2:    Implement restart strategies.
-#        Explicit vs implicit, see p. 239-240 of Dongara et al.'s book

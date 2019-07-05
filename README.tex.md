@@ -82,7 +82,7 @@ iterated_error_bound_full = np.array(iterated_error_bound_full)
 iterated_error_bound_selective = np.array(iterated_error_bound_selective)
 
 plot(m, eigvals, approx_eigvals, approx_eigvals_full, approx_eigvals_selective, 
-     iterated_error_bound, iterated_error_bound_full, iterated_error_bound_selective)
+     iterated_error_bound, iterated_error_bound_full, iterated_error_bound_selective) 
 ```
 
 Output :
@@ -95,4 +95,6 @@ Output :
 
 Observations :
 
-Ghost (repeating) eigenvalues appear when no reorthogonalization is applied. 
+Ghost (repeating) eigenvalues appear when no reorthogonalization is applied.
+
+Memory requirements increase with m. Restart becomes necessary. 

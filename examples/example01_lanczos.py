@@ -11,13 +11,18 @@ A = A.dot(A.T)
 m = 50
 npairs = 10
 
-eigvals = np.linalg.eigvalsh(A)[-1::-1]
+#eigvals = np.linalg.eigvalsh(A)[-1::-1]
+eigvals, eigvecs = np.linalg.eigh(A)
+eigvals = eigvals[-1::-1]
+eigvecs = eigvecs[:,-1::-1]
+q1 = None#eigvecs[:,4]+np.random.rand(n)*.005
+
 t0 = time.time()
-data = lanczos(A, npairs, m=m, eigvals=eigvals)
+data = lanczos(A, npairs, q1=q1, m=m, eigvals=eigvals)
 print("No reorthogonalization : %g" %(time.time()-t0)); t0 = time.time()
-data_full = lanczos(A, npairs, m=m, reortho="full", eigvals=eigvals)
+data_full = lanczos(A, npairs, q1=q1, m=m, reortho="full", eigvals=eigvals)
 print("Full reorthogonalization : %g" %(time.time()-t0)); t0 = time.time()
-data_selective = lanczos(A, npairs, m=m, reortho="selective", eigvals=eigvals)
+data_selective = lanczos(A, npairs, q1=q1, m=m, reortho="selective", eigvals=eigvals)
 print("Selective reorthogonalization : %g" %(time.time()-t0)); t0 = time.time()
 
 approx_eigvals, approx_eigvals_full, approx_eigvals_selective = [], [], []
@@ -43,7 +48,8 @@ plot(m, eigvals, approx_eigvals, approx_eigvals_full, approx_eigvals_selective,
      iterated_error_bound, iterated_error_bound_full, iterated_error_bound_selective)
 
 # TO DO:
-# Q1:    HOW DO YOU PICK m for a given n_eigvecs?
+# T1:    MAKE IT AS FAST AS POSSIBLE!
+# T2:    ALLOW for npairs <= m
+# T3:    Implement restart strategies.
+# Q1:    HOW TO PICK m for a given npairs?
 #        You can not know this, see p. 239-240 of Dongara et al.'s book.
-# T2:    Implement restart strategies.
-#        Explicit vs implicit, see p. 239-240 of Dongara et al.'s book
