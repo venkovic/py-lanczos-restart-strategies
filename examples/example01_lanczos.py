@@ -53,3 +53,8 @@ plot(m, eigvals, approx_eigvals, approx_eigvals_full, approx_eigvals_selective,
 # T3:    Implement restart strategies.
 # Q1:    HOW TO PICK m for a given npairs?
 #        You can not know this, see p. 239-240 of Dongara et al.'s book.
+
+
+# m is fixed by the memory available.
+# after tridiagolnalization is completed for some m, only some values are converged, which ones?
+# how do you restart to obtain other approximate values?
