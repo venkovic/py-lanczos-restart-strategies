@@ -95,6 +95,6 @@ Output :
 
 Observations :
 
-Ghost (repeating) eigenvalues appear when no reorthogonalization is applied.
+Ghost (repeating) eigenvalues appear when no reorthogonalization is applied. 
 
-Memory requirements increase with m. Restart becomes necessary. 
+Memory requirements increase with $m$. Restart becomes necessary. 
